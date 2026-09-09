@@ -1,7 +1,24 @@
-배포 체크
-1) Supabase 생성
-2) supabase_setup.sql 전체 실행
-3) config.js에 Project URL / Publishable(or anon) key 입력
-4) 폴더 전체를 GitHub repository 루트에 업로드
-5) Settings → Pages → Deploy from a branch → main / (root)
-6) 생성된 GitHub Pages 주소로 진행자/학생 모두 접속
+마피아 게임 최종 배포 순서
+
+1. 이 ZIP 파일의 내용물을 모두 압축 해제합니다.
+2. GitHub 저장소의 기존 파일을 이 폴더의 파일로 교체합니다.
+   - index.html
+   - app.js
+   - styles.css
+   - config.js
+   - assets 폴더
+3. GitHub Pages 배포가 끝난 뒤 사이트를 새로고침합니다.
+4. 처음 한 번만 화면에 나오는 Supabase 설정에
+   - Project URL
+   - Publishable key (또는 anon key)
+   를 입력하고 [저장하고 연결]을 누릅니다.
+   ※ GitHub 코드를 다시 수정하거나 재배포할 필요가 없습니다.
+5. Supabase에 마피아용 SQL을 아직 실행하지 않았다면 supabase_setup.sql을 SQL Editor에서 한 번 실행합니다.
+6. 진행자 → 방 만들기 → 방 생성 후 대기실 화면에 학생 참가용 QR코드가 자동으로 표시됩니다.
+   QR에는 방 코드와 공개 Supabase 연결 정보가 함께 들어가므로 학생 기기에서 별도 설정이 필요 없습니다.
+
+중요
+- service_role / secret key는 절대 입력하지 마세요.
+- Publishable/anon key는 브라우저에서 사용하는 공개용 키입니다.
+- QR 파일용 index_qr.html / app_qr.js 같은 별도 파일은 사용하지 않습니다.
+  최종본은 index.html + app.js + config.js 구조입니다.

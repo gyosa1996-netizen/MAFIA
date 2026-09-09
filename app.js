@@ -2,12 +2,44 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const $ = (id) => document.getElementById(id);
-const cfg = window.MAFIA_CONFIG || {};
-const configured =
+
+const CONFIG_STORAGE_KEY = "mafia_supabase_config_v2";
+
+function readSavedConfig(){
+  try{
+    return JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) || "null") || {};
+  }catch{
+    return {};
+  }
+}
+
+function captureConfigFromUrl(){
+  const params = new URLSearchParams(location.search);
+  const url = params.get("sburl") || "";
+  const key = params.get("sbkey") || "";
+  if(url && key){
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify({SUPABASE_URL:url,SUPABASE_KEY:key}));
+    params.delete("sburl");
+    params.delete("sbkey");
+    const qs = params.toString();
+    history.replaceState({}, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+    return {SUPABASE_URL:url,SUPABASE_KEY:key};
+  }
+  return {};
+}
+
+const cfg = {
+  ...(window.MAFIA_CONFIG || {}),
+  ...readSavedConfig(),
+  ...captureConfigFromUrl()
+};
+
+const configured = Boolean(
   cfg.SUPABASE_URL &&
   cfg.SUPABASE_KEY &&
-  !cfg.SUPABASE_URL.includes("YOUR_PROJECT") &&
-  !cfg.SUPABASE_KEY.includes("YOUR_");
+  !String(cfg.SUPABASE_URL).includes("YOUR_PROJECT") &&
+  !String(cfg.SUPABASE_KEY).includes("YOUR_")
+);
 
 let sb = null;
 let mode = null;
@@ -51,6 +83,12 @@ function buildJoinUrl(code){
   url.search = "";
   url.hash = "";
   url.searchParams.set("room", code);
+  // Publishable/anon key는 브라우저 공개용 키이므로 학생 QR 링크로 전달할 수 있습니다.
+  // service_role/secret 키는 절대 넣지 마세요.
+  if(configured){
+    url.searchParams.set("sburl", cfg.SUPABASE_URL);
+    url.searchParams.set("sbkey", cfg.SUPABASE_KEY);
+  }
   return url.toString();
 }
 
@@ -97,6 +135,46 @@ function clearSession(){
   location.href = location.pathname;
 }
 
+function isSafePublicConfig(url,key){
+  const u=String(url||"").trim();
+  const k=String(key||"").trim();
+  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(u)) return false;
+  if(!k || /service[_-]?role|secret/i.test(k)) return false;
+  return k.startsWith("sb_publishable_") || k.startsWith("eyJ");
+}
+
+function renderConfigSetup(note=""){
+  const box=$("configError");
+  box.classList.remove("hidden");
+  const title=box.querySelector("h2");
+  const body=box.querySelector("p");
+  if(title) title.textContent="처음 한 번만 Supabase 연결";
+  if(body){
+    body.innerHTML=`
+      <span class="muted">GitHub 파일을 다시 수정할 필요 없이 여기에서 저장할 수 있습니다.</span>
+      <label for="setupSbUrl">Project URL</label>
+      <input id="setupSbUrl" autocomplete="off" placeholder="https://xxxx.supabase.co" value="${String(cfg.SUPABASE_URL||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;")}">
+      <label for="setupSbKey">Publishable key</label>
+      <input id="setupSbKey" autocomplete="off" placeholder="sb_publishable_... 또는 anon key" value="${String(cfg.SUPABASE_KEY||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;")}">
+      <div id="setupConfigMsg" class="muted" style="margin-top:10px">${note||"Supabase Dashboard → Project Settings → API에서 확인할 수 있습니다."}</div>
+      <button id="saveConfigBtn" class="btn primary" style="width:100%;margin-top:12px">저장하고 연결</button>
+      <div class="muted" style="margin-top:10px">※ service_role / secret key는 입력하지 마세요. Publishable(또는 anon) key만 사용합니다.</div>`;
+    $("saveConfigBtn").onclick=()=>{
+      const url=$("setupSbUrl").value.trim().replace(/\/$/,"");
+      const key=$("setupSbKey").value.trim();
+      if(!isSafePublicConfig(url,key)){
+        $("setupConfigMsg").textContent="Project URL과 Publishable(또는 anon) key를 다시 확인하세요.";
+        return;
+      }
+      localStorage.setItem(CONFIG_STORAGE_KEY,JSON.stringify({SUPABASE_URL:url,SUPABASE_KEY:key}));
+      location.reload();
+    };
+  }
+  $("showCreateBtn").disabled=true;
+  $("showJoinBtn").disabled=true;
+  $("connectionStatus").textContent="Supabase 설정 필요";
+}
+
 function setConnected(ok){
   $("connectionStatus").classList.toggle("online", !!ok);
   $("connectionStatus").textContent = ok ? "Supabase 연결됨" : "연결 확인 중";
@@ -116,7 +194,13 @@ function showConnectionError(err){
     body.innerHTML =
       "페이지 자체는 정상적으로 열렸지만 Supabase와 통신하지 못했습니다.<br>" +
       "<b>오류:</b> " + String(err?.message || err || "알 수 없는 오류") +
-      "<br><br>config.js의 Project URL / Publishable key와 supabase_setup.sql 실행 여부를 확인하세요.";
+      "<br><br>Project URL / Publishable key와 <b>supabase_setup.sql</b> 실행 여부를 확인하세요." +
+      '<br><button id="changeConfigBtn" class="btn" style="margin-top:12px">Supabase 설정 다시 입력</button>';
+    const btn=$("changeConfigBtn");
+    if(btn) btn.onclick=()=>{
+      localStorage.removeItem(CONFIG_STORAGE_KEY);
+      renderConfigSetup("연결에 실패했습니다. 설정값을 다시 입력해 주세요.");
+    };
   }
 }
 
@@ -438,10 +522,7 @@ document.addEventListener("click",()=>{
 
 async function boot(){
   if(!configured){
-    $("configError").classList.remove("hidden");
-    $("showCreateBtn").disabled=true;
-    $("showJoinBtn").disabled=true;
-    $("connectionStatus").textContent = "Supabase 설정 필요";
+    renderConfigSetup();
     return;
   }
 
