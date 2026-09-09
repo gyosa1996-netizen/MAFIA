@@ -66,9 +66,28 @@ function setConnected(ok){
   $("connectionStatus").textContent = ok ? "Supabase 연결됨" : "연결 확인 중";
 }
 
+function showConnectionError(err){
+  $("connectionStatus").classList.remove("online");
+  $("connectionStatus").textContent = "Supabase 연결 오류";
+
+  const box = $("configError");
+  box.classList.remove("hidden");
+
+  const title = box.querySelector("h2");
+  const body = box.querySelector("p");
+  if(title) title.textContent = "Supabase 연결 확인 실패";
+  if(body){
+    body.innerHTML =
+      "페이지 자체는 정상적으로 열렸지만 Supabase와 통신하지 못했습니다.<br>" +
+      "<b>오류:</b> " + String(err?.message || err || "알 수 없는 오류") +
+      "<br><br>config.js의 Project URL / Publishable key와 supabase_setup.sql 실행 여부를 확인하세요.";
+  }
+}
+
 async function rpc(name, args={}){
   const { data, error } = await sb.rpc(name,args);
   if(error) throw new Error(error.message || "요청 실패");
+  setConnected(true);
   return data;
 }
 
@@ -383,19 +402,37 @@ document.addEventListener("click",()=>{
 async function boot(){
   if(!configured){
     $("configError").classList.remove("hidden");
-    $("showCreateBtn").disabled=true;$("showJoinBtn").disabled=true;
+    $("showCreateBtn").disabled=true;
+    $("showJoinBtn").disabled=true;
+    $("connectionStatus").textContent = "Supabase 설정 필요";
     return;
   }
+
   sb=createClient(cfg.SUPABASE_URL,cfg.SUPABASE_KEY,{auth:{persistSession:false}});
+
+  // 연결 확인 실패는 페이지 새로고침으로 처리하지 않는다.
+  // 예전 버전은 여기서 clearSession()을 호출해 무한 새로고침이 발생했다.
   try{
     await rpc("mafia_ping");
-    setConnected(true);
-    if(loadSession()){
+  }catch(e){
+    console.error("Supabase ping failed:", e);
+    showConnectionError(e);
+  }
+
+  // 저장된 게임 세션 복구는 별도로 시도한다.
+  if(loadSession()){
+    try{
       if(mode==="host") await enterHost();
       else await enterPlayer();
+    }catch(e){
+      console.error("Session restore failed:", e);
+      localStorage.removeItem("mafia_session");
+      mode=null; roomId=null; playerId=null; playerToken=null; hostToken=null;
+      $("hostScreen").classList.add("hidden");
+      $("playerScreen").classList.add("hidden");
+      $("homeScreen").classList.remove("hidden");
+      showConnectionError(e);
     }
-  }catch(e){
-    console.error(e);clearSession();
   }
 }
 boot();
