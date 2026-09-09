@@ -1,0 +1,7 @@
+배포 체크
+1) Supabase 생성
+2) supabase_setup.sql 전체 실행
+3) config.js에 Project URL / Publishable(or anon) key 입력
+4) 폴더 전체를 GitHub repository 루트에 업로드
+5) Settings → Pages → Deploy from a branch → main / (root)
+6) 생성된 GitHub Pages 주소로 진행자/학생 모두 접속

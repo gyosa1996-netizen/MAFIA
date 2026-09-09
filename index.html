@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#09111f">
+  <title>실시간 마피아 게임</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="brand">
+      <h1>🕵️ 실시간 마피아</h1>
+      <p>GitHub Pages + Supabase 다중기기 버전</p>
+    </div>
+    <div id="connectionStatus" class="status-dot">연결 확인 중</div>
+  </div>
+
+  <div id="configError" class="card hidden">
+    <h2>Supabase 연결 설정이 필요합니다</h2>
+    <p><code>config.js</code>의 <b>SUPABASE_URL</b>과 <b>SUPABASE_KEY</b>를 입력한 뒤 다시 배포하세요.</p>
+  </div>
+
+  <section id="homeScreen">
+    <div class="card">
+      <h2>게임 시작</h2>
+      <div class="grid-2">
+        <button id="showCreateBtn" class="btn primary">🎙️ 진행자 — 방 만들기</button>
+        <button id="showJoinBtn" class="btn good">📱 참가자 — 방 참가</button>
+      </div>
+    </div>
+
+    <div id="createPanel" class="card hidden">
+      <h2>방 만들기</h2>
+      <div class="grid-4">
+        <div class="role-setting"><label>🔪 마피아</label><input id="mafiaCount" type="number" min="1" max="10" value="1"></div>
+        <div class="role-setting"><label>👮 경찰</label><input id="policeCount" type="number" min="0" max="10" value="1"></div>
+        <div class="role-setting"><label>🩺 의사</label><input id="doctorCount" type="number" min="0" max="10" value="1"></div>
+        <div class="role-setting"><label>🙂 시민</label><input id="citizenCount" type="number" min="0" max="30" value="3"></div>
+      </div>
+      <div id="capacityInfo" class="notice">총 6명</div>
+      <button id="createRoomBtn" class="btn primary" style="width:100%">방 생성</button>
+    </div>
+
+    <div id="joinPanel" class="card hidden">
+      <h2>방 참가</h2>
+      <label>5자리 방 코드</label>
+      <input id="roomCodeInput" inputmode="numeric" maxlength="5" placeholder="예: 38124">
+      <label>이름/별명</label>
+      <input id="playerNameInput" maxlength="20" placeholder="이름 또는 별명 입력">
+      <button id="joinRoomBtn" class="btn good" style="width:100%;margin-top:12px">참가하기</button>
+    </div>
+    <div id="homeMessage"></div>
+  </section>
+
+  <section id="hostScreen" class="hidden">
+    <div class="card">
+      <div class="top-actions">
+        <button id="copyCodeBtn" class="btn">방 코드 복사</button>
+        <button id="hostResetSessionBtn" class="btn danger">이 기기에서 나가기</button>
+      </div>
+      <div class="big-code" id="hostRoomCode">00000</div>
+      <div class="muted" style="text-align:center">참가자는 같은 사이트에서 이 방 코드를 입력합니다.</div>
+    </div>
+
+    <div id="hostLobbyCard" class="card">
+      <h2>참가자 대기실</h2>
+      <div id="hostLobbyInfo" class="notice"></div>
+      <div id="hostPlayerList" class="player-list"></div>
+      <button id="startGameBtn" class="btn primary" style="width:100%;margin-top:14px">역할 배정 후 게임 시작</button>
+    </div>
+
+    <div id="hostGameCard" class="card hidden">
+      <div id="hostPhase" class="phase"></div>
+      <div id="hostAnnouncement"></div>
+
+      <div class="submission-grid" id="submissionGrid"></div>
+
+      <div class="row" style="margin-top:12px">
+        <button id="advanceBtn" class="btn primary">다음 단계 →</button>
+        <button id="rematchBtn" class="btn warn hidden">같은 멤버로 새 게임</button>
+      </div>
+
+      <hr>
+      <h3>배경음</h3>
+      <div class="row">
+        <button id="bgmToggleBtn" class="btn">🔊 배경음 켜짐</button>
+        <div class="volume">
+          <span>음량</span>
+          <input id="volumeSlider" type="range" min="0" max="100" value="100">
+          <b id="volumeValue">100%</b>
+        </div>
+      </div>
+
+      <hr>
+      <h3>생존 현황</h3>
+      <div id="hostAliveList" class="player-list"></div>
+    </div>
+  </section>
+
+  <section id="playerScreen" class="hidden">
+    <div class="card">
+      <div class="top-actions">
+        <button id="playerResetSessionBtn" class="btn danger">이 기기에서 나가기</button>
+      </div>
+      <div class="big-code" id="playerRoomCode">00000</div>
+      <div id="playerIdentity" style="text-align:center;font-weight:900"></div>
+    </div>
+
+    <div id="playerLobbyCard" class="card">
+      <h2>참가 완료</h2>
+      <div class="notice success">진행자가 게임을 시작할 때까지 기다리세요.</div>
+      <div id="playerLobbyList" class="player-list"></div>
+    </div>
+
+    <div id="playerGameCard" class="card hidden">
+      <div id="playerPhase" class="phase"></div>
+      <div id="playerAnnouncement"></div>
+
+      <div class="role-card">
+        <div class="muted">나의 역할</div>
+        <div id="roleHidden">••••••</div>
+        <div id="roleShown" class="hidden">
+          <div id="roleName" class="role-name"></div>
+          <div id="roleDescription"></div>
+          <div id="mafiaTeam" class="notice hidden"></div>
+        </div>
+        <button id="toggleRoleBtn" class="btn" style="margin-top:12px">역할 보기</button>
+      </div>
+
+      <div id="actionCard" class="card hidden" style="margin-top:14px">
+        <h3 id="actionTitle"></h3>
+        <div id="actionHelp" class="muted"></div>
+        <div id="targetGrid" class="target-grid"></div>
+        <button id="submitActionBtn" class="btn primary" style="width:100%;margin-top:12px" disabled>선택 제출</button>
+        <div id="actionMessage"></div>
+      </div>
+
+      <div id="investigationResult" class="result-box hidden"></div>
+
+      <hr>
+      <h3>참가자 현황</h3>
+      <div id="playerAliveList" class="player-list"></div>
+    </div>
+  </section>
+</div>
+
+<audio id="nightBgm" src="./assets/night.mp3" loop preload="auto"></audio>
+<audio id="dayBgm" src="./assets/day.mp3" loop preload="auto"></audio>
+
+<script src="./config.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
