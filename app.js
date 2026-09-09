@@ -21,6 +21,7 @@ let lastPhase = null;
 let selectedTarget = null;
 let lastActionPhase = null;
 let bgmEnabled = true;
+let lastQrCode = null;
 
 const phaseMeta = {
   lobby: ["⌛","대기실","참가자를 기다리는 중입니다."],
@@ -44,6 +45,41 @@ function message(el, text, type="notice"){
   el.innerHTML = text ? `<div class="${type}">${text}</div>` : "";
 }
 function safeText(v){ return String(v ?? ""); }
+
+function buildJoinUrl(code){
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("room", code);
+  return url.toString();
+}
+
+function renderJoinQr(code){
+  if(!code || code === "00000" || lastQrCode === code) return;
+
+  const qrBox = $("joinQrCode");
+  const urlBox = $("joinUrlText");
+  if(!qrBox) return;
+
+  const joinUrl = buildJoinUrl(code);
+  qrBox.innerHTML = "";
+  if(urlBox) urlBox.textContent = joinUrl;
+
+  if(typeof window.QRCode !== "function"){
+    qrBox.textContent = "QR코드를 불러오지 못했습니다.";
+    return;
+  }
+
+  new window.QRCode(qrBox,{
+    text: joinUrl,
+    width: 184,
+    height: 184,
+    colorDark: "#07111d",
+    colorLight: "#ffffff",
+    correctLevel: window.QRCode.CorrectLevel.M
+  });
+  lastQrCode = code;
+}
 
 function saveSession(){
   localStorage.setItem("mafia_session", JSON.stringify({mode,roomId,playerId,playerToken,hostToken}));
@@ -197,6 +233,7 @@ async function refreshHost(){
   const [pub,host]=await Promise.all([publicState(),hostState()]);
   setConnected(true);
   $("hostRoomCode").textContent=pub.room.code;
+  renderJoinQr(pub.room.code);
   renderPlayers($("hostPlayerList"),pub.players);
   renderPlayers($("hostAliveList"),pub.players);
 

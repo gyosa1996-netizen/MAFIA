@@ -52,6 +52,24 @@ input:focus,select:focus{border-color:var(--blue)}
   font-size:clamp(42px,10vw,76px);font-weight:1000;letter-spacing:.13em;text-align:center;
   color:var(--yellow);margin:10px 0
 }
+.room-share-grid{
+  display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:24px;align-items:center;margin-top:10px
+}
+.room-code-area{min-width:0}
+.qr-area{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  background:#0b1525;border:1px solid var(--line);border-radius:18px;padding:16px
+}
+.qr-box{
+  width:200px;min-height:200px;display:flex;align-items:center;justify-content:center;
+  background:#fff;border-radius:14px;padding:8px;color:#07111d;text-align:center;font-size:13px
+}
+.qr-box img,.qr-box canvas{display:block;max-width:100%;height:auto}
+.qr-label{font-weight:900;font-size:14px;color:var(--text)}
+.join-url-text{
+  width:100%;font-size:10px;line-height:1.35;color:var(--muted);text-align:center;
+  overflow-wrap:anywhere;word-break:break-all;max-height:2.8em;overflow:hidden
+}
 .phase{
   text-align:center;background:#0a1424;border:1px solid var(--line);border-radius:18px;padding:24px 16px
 }
@@ -103,6 +121,7 @@ input:focus,select:focus{border-color:var(--blue)}
 .top-actions .btn{padding:9px 12px;font-size:14px}
 hr{border:0;border-top:1px solid var(--line);margin:18px 0}
 @media(max-width:680px){
-  .grid-2,.grid-4,.player-list,.target-grid,.submission-grid{grid-template-columns:1fr}
+  .grid-2,.grid-4,.player-list,.target-grid,.submission-grid,.room-share-grid{grid-template-columns:1fr}
   .header{align-items:stretch;flex-direction:column}
+  .qr-area{margin-top:4px}
 }

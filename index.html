@@ -11,7 +11,7 @@
 <div class="app">
   <div class="header">
     <div class="brand">
-      <h1>🕵️ 마피아</h1>
+      <h1>🕵️ 마피아 게임</h1>
     </div>
     <div id="connectionStatus" class="status-dot">연결 확인 중</div>
   </div>
@@ -59,8 +59,17 @@
         <button id="copyCodeBtn" class="btn">방 코드 복사</button>
         <button id="hostResetSessionBtn" class="btn danger">이 기기에서 나가기</button>
       </div>
-      <div class="big-code" id="hostRoomCode">00000</div>
-      <div class="muted" style="text-align:center">참가자는 같은 사이트에서 이 방 코드를 입력합니다.</div>
+      <div class="room-share-grid">
+        <div class="room-code-area">
+          <div class="big-code" id="hostRoomCode">00000</div>
+          <div class="muted" style="text-align:center">방 코드를 직접 입력하거나 QR코드를 스캔해 참가할 수 있습니다.</div>
+        </div>
+        <div class="qr-area">
+          <div id="joinQrCode" class="qr-box" aria-label="학생 참가용 QR코드"></div>
+          <div class="qr-label">학생 참가 QR코드</div>
+          <div id="joinUrlText" class="join-url-text"></div>
+        </div>
+      </div>
     </div>
 
     <div id="hostLobbyCard" class="card">
@@ -149,6 +158,7 @@
 <audio id="dayBgm" src="./assets/day.mp3" loop preload="auto"></audio>
 
 <script src="./config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script type="module" src="./app.js"></script>
 </body>
 </html>
